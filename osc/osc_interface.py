@@ -32,7 +32,7 @@ class OSCInterface:
 
         self.server = osc_server.ThreadingOSCUDPServer(("192.168.0.33", 8000), dispatcher)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
-        self._log_event("listener_started", "/", ["0.0.0.0, 8000"])
+        self._log_event("listener_started", "/", ["192.168.0.33, 8000"])
 
     def _setup_logger(self, enable_logging, log_path):
         logger = logging.getLogger("agent_osc")
