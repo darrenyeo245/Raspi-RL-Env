@@ -18,7 +18,7 @@ class OSCInterface:
         self._training_stop_pending = False
         self._lock = threading.Condition()
 
-        self.client = udp_client.SimpleUDPClient("127.0.0.1", 8000)
+        self.client = udp_client.SimpleUDPClient("192.168.0.33", 8000)
         self.logger = self._setup_logger(enable_logging=enable_logging, log_path=log_path)
 
         dispatcher = Dispatcher()
@@ -30,9 +30,9 @@ class OSCInterface:
         dispatcher.map("/training/stop", self.training_stop_handler)
 
 
-        self.server = osc_server.ThreadingOSCUDPServer(("127.0.0.1", 9001), dispatcher)
+        self.server = osc_server.ThreadingOSCUDPServer(("192.168.0.33", 8000), dispatcher)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
-        self._log_event("listener_started", "/", ["127.0.0.1:9001"])
+        self._log_event("listener_started", "/", ["0.0.0.0, 8000"])
 
     def _setup_logger(self, enable_logging, log_path):
         logger = logging.getLogger("agent_osc")
