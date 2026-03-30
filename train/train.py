@@ -87,7 +87,9 @@ class EpisodeSummaryCallback(BaseCallback):
 
         return True
 
-def train(out_dir='models', total_timesteps=10000, algo="ppo", max_steps=100):
+def train(out_dir=None, total_timesteps=10000, algo="ppo", max_steps=100):
+    if out_dir is None:
+        out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models')
     os.makedirs(out_dir, exist_ok=True)
 
     osc = OSCInterface()

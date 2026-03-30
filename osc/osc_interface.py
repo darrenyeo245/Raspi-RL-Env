@@ -4,6 +4,14 @@ import threading
 import numpy as np
 import logging
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+HUB_IP = os.getenv("HUB_IP", "127.0.0.1")       
+HUB_PORT = int(os.getenv("HUB_PORT", 8000))
+RASPI_PORT = int(os.getenv("RASPI_PORT", 9001))
 
 class OSCInterface:
     def __init__(self, enable_logging=True, log_path="logs/agent_osc.log"):
@@ -18,7 +26,7 @@ class OSCInterface:
         self._training_stop_pending = False
         self._lock = threading.Condition()
 
-        self.client = udp_client.SimpleUDPClient("192.168.0.33", 8000)
+        self.client = udp_client.SimpleUDPClient(HUB_IP, HUB_PORT)
         self.logger = self._setup_logger(enable_logging=enable_logging, log_path=log_path)
 
         dispatcher = Dispatcher()
@@ -30,9 +38,9 @@ class OSCInterface:
         dispatcher.map("/training/stop", self.training_stop_handler)
 
 
-        self.server = osc_server.ThreadingOSCUDPServer(("192.168.0.33", 8000), dispatcher)
+        self.server = osc_server.ThreadingOSCUDPServer(("0.0.0.0", RASPI_PORT), dispatcher)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
-        self._log_event("listener_started", "/", ["192.168.0.33, 8000"])
+        self._log_event("listener_started", "/", ["0.0.0.0, 9001"])
 
     def _setup_logger(self, enable_logging, log_path):
         logger = logging.getLogger("agent_osc")

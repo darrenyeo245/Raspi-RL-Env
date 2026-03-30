@@ -7,3 +7,4 @@ tb_logs/
 # Python cache__pycache__/
 *.pyc```
 
+.env
