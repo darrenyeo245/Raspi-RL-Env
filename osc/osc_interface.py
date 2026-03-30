@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 class OSCInterface:
-    def __init__(self, enable_logging=True, log_path="train/logs/agent_osc.log"):
+    def __init__(self, enable_logging=True, log_path="logs/agent_osc.log"):
         self.actor_state = np.zeros(3, dtype=np.float32)
         self.media_command_state = np.zeros(3, dtype=np.float32)
         self.reward = 0.0
