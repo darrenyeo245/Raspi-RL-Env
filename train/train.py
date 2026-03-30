@@ -2,7 +2,7 @@ import os
 
 from stable_baselines3 import PPO
 
-from env import MediaEnv
+from env.media_env import MediaEnv
 from osc.osc_interface import OSCInterface
 from stable_baselines3.common.callbacks import BaseCallback
 import numpy as np
@@ -85,7 +85,7 @@ class EpisodeSummaryCallback(BaseCallback):
 
         return True
 
-def train(out_dir='train/models', total_timesteps=10000, algo="ppo", max_steps=100):
+def train(out_dir='models', total_timesteps=10000, algo="ppo", max_steps=100):
     os.makedirs(out_dir, exist_ok=True)
 
     osc = OSCInterface()
