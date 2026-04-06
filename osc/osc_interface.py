@@ -36,6 +36,7 @@ class OSCInterface:
         dispatcher.map("/episode/reset_manual", self.manual_reset_handler)
         dispatcher.map("/episode/end", self.episode_end_handler)
         dispatcher.map("/training/stop", self.training_stop_handler)
+        dispatcher.map("/training/stop_save", self.training_stop_handler)
 
 
         self.server = osc_server.ThreadingOSCUDPServer(("0.0.0.0", RASPI_PORT), dispatcher)

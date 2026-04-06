@@ -157,9 +157,13 @@ class EpisodeSummaryCallback(BaseCallback):
             self._print_episode_summary(reason, gamma, policy_mean, policy_std, entropy)
 
         if training_stop:
-            self.model.save(self.final_model_path)
+            training_stop_save = bool(info.get("training_stop_save", False))
+            if training_stop_save:
+                self.model.save(self.final_model_path)
+                print ("Training stop: Modell gespeichert, Training wird beendet.", flush=True)
+            else:
+                print("Training stop: Modell nicht gespeichert.", flush=True)
             self._print_training_summary()
-            print("Training stop: Modell gespeichert, Training wird beendet.", flush=True)
             self._reset_episode()
             return False
 
