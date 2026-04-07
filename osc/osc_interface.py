@@ -9,9 +9,10 @@ import os
 
 load_dotenv()
 
-HUB_IP = os.getenv("HUB_IP", "127.0.0.1")       
+HUB_IP = os.getenv("HUB_IP", "127.0.0.1")
 HUB_PORT = int(os.getenv("HUB_PORT", 8000))
 RASPI_PORT = int(os.getenv("RASPI_PORT", 9001))
+
 
 class OSCInterface:
     def __init__(self, enable_logging=True, log_path="logs/agent_osc.log"):
@@ -19,27 +20,30 @@ class OSCInterface:
         self.media_command_state = np.zeros(3, dtype=np.float32)
         self.reward = 0.0
 
+        self.aed_min = np.array([-180.0, -90.0, 0.0], dtype=np.float32)
+        self.aed_max = np.array([180.0,90.0,1.0], dtype=np.float32)
+
         self._state_pending = False
         self._reward_pending = False
         self._manual_reset_pending = False
         self._episode_end_pending = False
         self._training_stop_pending = False
+        self._training_stop_save_pending = False
         self._lock = threading.Condition()
 
         self.client = udp_client.SimpleUDPClient(HUB_IP, HUB_PORT)
         self.logger = self._setup_logger(enable_logging=enable_logging, log_path=log_path)
 
         dispatcher = Dispatcher()
-        dispatcher.map("/adm/obj/101/xyz", self.state_handler)
-        dispatcher.map("/adm/obj/1/xyz", self.media_command_handler)
+        dispatcher.map("/adm/obj/101/aed", self.state_handler)
+        dispatcher.map("/adm/obj/1/aed", self.media_command_handler)
         dispatcher.map("/reward", self.reward_handler)
         dispatcher.map("/episode/reset_manual", self.manual_reset_handler)
         dispatcher.map("/episode/end", self.episode_end_handler)
         dispatcher.map("/training/stop", self.training_stop_handler)
-        dispatcher.map("/training/stop_save", self.training_stop_handler)
+        dispatcher.map("/training/stop_save", self.training_stop_save_handler)
 
-
-        self.server = osc_server.ThreadingOSCUDPServer(("0.0.0.0", RASPI_PORT), dispatcher)
+        self.server = osc_server.ThreadingOSCUDPServer(("127.0.0.1", RASPI_PORT), dispatcher)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self._log_event("listener_started", "/", ["0.0.0.0, 9001"])
 
@@ -75,20 +79,26 @@ class OSCInterface:
         if self.logger.isEnabledFor(logging.INFO):
             self.logger.info("%s | %s | %s", direction, address, list(payload))
 
+    def _clip_aed(self, values):
+        values = np.asarray(values, dtype=np.float32)
+        return np.clip(values, self.aed_min, self.aed_max)
+
     def state_handler(self, address, *args):
         if len(args) >= 3:
+            state_aed = self._clip_aed(np.array(args[:3], dtype=np.float32))
             with self._lock:
-                self.actor_state = np.array(args[:3], dtype=np.float32)
+                self.actor_state = state_aed
                 self._state_pending = True
                 self._lock.notify_all()
-            self._log_event("recv", address, args[:3])
+            self._log_event("recv", address, state_aed.tolist())
 
     def media_command_handler(self, address, *args):
         if len(args) >= 3:
+            media_aed = self._clip_aed(np.array(args[:3], dtype=np.float32))
             with self._lock:
-                self.media_command_state = np.array(args[:3], dtype=np.float32)
+                self.media_command_state = media_aed
                 self._lock.notify_all()
-            self._log_event("recv", address, args[:3])
+            self._log_event("recv", address, media_aed.tolist())
 
     def reward_handler(self, address, *args):
         if not args:
@@ -114,9 +124,16 @@ class OSCInterface:
     def training_stop_handler(self, address, *args):
         with self._lock:
             self._training_stop_pending = True
+            self._training_stop_save_pending = False
             self._lock.notify_all()
         self._log_event("recv", address, args)
 
+    def training_stop_save_handler(self, address, *args):
+        with self._lock:
+            self._training_stop_pending = True
+            self._training_stop_save_pending = True
+            self._lock.notify_all()
+        self._log_event("recv", address, args)
 
     def get_state(self, wait_for_new=False, timeout=None):
         return self.get_actor_state(wait_for_new=wait_for_new, timeout=timeout)
@@ -145,18 +162,16 @@ class OSCInterface:
             return r
 
     def send_action(self, action):
-        action = np.asarray(action, dtype=np.float32)
-        payload = action.tolist()
-        self.client.send_message("/adm/obj/1/xyz", payload)
+        action = self._clip_aed(action)
+        self.client.send_message("/adm/obj/1/aed", action.tolist())
         with self._lock:
             self.media_command_state = action.copy()
-        self._log_event("send", "/adm/obj/1/xyz", payload)
+        self._log_event("send", "/adm/obj/1/aed", action.tolist())
 
     def send_reset(self, init_state):
-        init_state = np.asarray(init_state, dtype=np.float32)
-        payload = init_state.tolist()
-        self.client.send_message("/episode/reset", payload)
-        self._log_event("send", "/episode/reset", payload)
+        init_state = self._clip_aed(init_state)
+        self.client.send_message("/episode/reset", init_state.tolist())
+        self._log_event("send", "/episode/reset", init_state.tolist())
 
     def wait_for_feedback(self, timeout=None):
         with self._lock:
@@ -172,11 +187,13 @@ class OSCInterface:
             manual_reset = self._manual_reset_pending
             episode_end = self._episode_end_pending
             training_stop = self._training_stop_pending
+            training_stop_save = self._training_stop_save_pending
 
             self.reward = 0.0
             self._reward_pending = False
             self._manual_reset_pending = False
             self._episode_end_pending = False
             self._training_stop_pending = False
+            self._training_stop_save_pending = False
 
-            return reward, manual_reset, episode_end, training_stop
+            return reward, manual_reset, episode_end, training_stop, training_stop_save

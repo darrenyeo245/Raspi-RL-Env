@@ -8,10 +8,17 @@ class MediaEnv(gym.Env):
         self.osc = osc_interface
 
         self.observation_space = gym.spaces.Box(
-            low=-1.0, high=1.0, shape=(6,), dtype=np.float32
+            low=np.array([-180.0, -90.0, 0.0, -180.0, -90.0, 0.0], dtype=np.float32),
+            high= np.array([180.0, 90.0, 1.0, 180.0, 90.0, 1.0], dtype=np.float32),
+            shape=(6,),
+            dtype=np.float32,
         )
+
         self.action_space = gym.spaces.Box(
-            low=-1.0, high=1.0, shape=(3,), dtype=np.float32
+            low=np.array([-180.0, -90.0, 0.0], dtype=np.float32),
+            high=np.array([180.0, 90.0, 1.0], dtype=np.float32),
+            shape=(3,),
+            dtype=np.float32,
         )
 
         self.max_steps = int(max_steps)
@@ -30,7 +37,7 @@ class MediaEnv(gym.Env):
         action = np.asarray(action, dtype=np.float32)
         self.osc.send_action(action)
 
-        reward, manual_reset, episode_end, training_stop = self.osc.wait_for_feedback(timeout=None)
+        reward, manual_reset, episode_end, training_stop, training_stop_save = self.osc.wait_for_feedback(timeout=None)
 
         actor_state = self.osc.get_actor_state(wait_for_new=False).astype(np.float32)
         obs = self._build_observation(actor_state)
@@ -62,6 +69,7 @@ class MediaEnv(gym.Env):
             "actor_state": actor_state.tolist(),
             "media_state": obs[3:6].tolist(),
             "training_stop": bool(training_stop),
+            "training_stop_save": bool(training_stop_save),
 
         }
         return obs, float(reward), terminated, truncated, info
@@ -72,7 +80,6 @@ class MediaEnv(gym.Env):
 
         self.osc.send_reset(np.zeros(3, dtype=np.float32))
 
-        # Primärquelle für den Zustand ist die Kamera (/adm/obj/101/xyz).
         actor_state = self.osc.get_actor_state(wait_for_new=True, timeout=1.0).astype(np.float32)
 
         obs = self._build_observation(actor_state)
