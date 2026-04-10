@@ -37,6 +37,7 @@ class OSCInterface:
         dispatcher = Dispatcher()
         dispatcher.map("/adm/obj/101/aed", self.state_handler)
         dispatcher.map("/adm/obj/1/aed", self.media_command_handler)
+        dispatcher.map("/adm/obj/2/aed", self.media_command_handler)
         dispatcher.map("/reward", self.reward_handler)
         dispatcher.map("/episode/reset_manual", self.manual_reset_handler)
         dispatcher.map("/episode/end", self.episode_end_handler)
@@ -164,9 +165,11 @@ class OSCInterface:
     def send_action(self, action):
         action = self._clip_aed(action)
         self.client.send_message("/adm/obj/1/aed", action.tolist())
+        self.client.send_message("/adm/obj/2/aed", action.tolist())
         with self._lock:
             self.media_command_state = action.copy()
         self._log_event("send", "/adm/obj/1/aed", action.tolist())
+        self._log_event("send", "/adm/obj/2/aed", action.tolist())
 
     def send_reset(self, init_state):
         init_state = self._clip_aed(init_state)
