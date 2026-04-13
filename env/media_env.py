@@ -8,8 +8,8 @@ class MediaEnv(gym.Env):
         self.osc = osc_interface
 
         self.observation_space = gym.spaces.Box(
-            low=np.array([-180.0, -90.0, 0.0, -180.0, -90.0, 0.0], dtype=np.float32),
-            high= np.array([180.0, 90.0, 1.0, 180.0, 90.0, 1.0], dtype=np.float32),
+            low=np.array([-1.0, -1.0, -1.0, -180.0, -90.0, 0.0], dtype=np.float32),
+            high= np.array([1.0, 1.0, 1.0, 180.0, 90.0, 1.0], dtype=np.float32),
             shape=(6,),
             dtype=np.float32,
         )

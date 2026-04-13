@@ -181,10 +181,7 @@ def train(out_dir=None, total_timesteps=10000, algo="ppo", max_steps=100):
     final_model_path = os.path.join(out_dir, "final_model")
 
     if os.path.exists(final_model_path + ".zip"):
-        model = PPO.load(final_model_path, env=env)
-        model.n_steps=64
-        model.batch_size=32
-        model._setup_model()
+        model = PPO.load(final_model_path, env=env, n_steps=64, batch_size=32)
         print("Modell 'final_model' wurde geladen")
     else:
         model = PPO(
