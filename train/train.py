@@ -198,8 +198,7 @@ def train(out_dir=None, total_timesteps=10000, algo="ppo", max_steps=100):
     try:
         model.learn(total_timesteps=total_timesteps, callback=callback)
     finally:
-        model.save(final_model_path)
-        print("Training beendet, Modell gespeichert als 'final_model.zip'.", flush=True)
+        print("Training beendet.", flush=True)
 
     return model, env
 
