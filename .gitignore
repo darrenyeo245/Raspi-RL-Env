@@ -1,6 +1,5 @@
 venv/
 .idea/
-# Logs*.loglogs/
 train/logs/
 tb_logs/
 **/__pycache__/
