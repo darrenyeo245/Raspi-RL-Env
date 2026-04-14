@@ -4,3 +4,4 @@ train/logs/
 tb_logs/
 **/__pycache__/
 .env
+*.log
