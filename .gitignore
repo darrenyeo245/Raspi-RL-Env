@@ -5,3 +5,4 @@ tb_logs/
 **/__pycache__/
 .env
 *.logs
+train/models/final_model.zip
