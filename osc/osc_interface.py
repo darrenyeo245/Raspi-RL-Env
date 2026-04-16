@@ -9,8 +9,8 @@ import os
 
 load_dotenv()
 
-HUB_IP = os.getenv("HUB_IP", "127.0.0.1")       
-HUB_PORT = int(os.getenv("HUB_PORT", 8000))
+BROADCAST_IP = os.getenv("BROADCAST_IP", "255.255.255.255")
+BROADCAST_PORT = int(os.getenv("BROADCAST_PORT", 9001))
 RASPI_PORT = int(os.getenv("RASPI_PORT", 9001))
 
 class OSCInterface:
@@ -26,7 +26,7 @@ class OSCInterface:
         self._training_stop_pending = False
         self._lock = threading.Condition()
 
-        self.client = udp_client.SimpleUDPClient(HUB_IP, HUB_PORT)
+        self.client = udp_client.SimpleUDPClient(BROADCAST_IP, BROADCAST_PORT, allow_broadcast=True)
         self.logger = self._setup_logger(enable_logging=enable_logging, log_path=log_path)
 
         dispatcher = Dispatcher()
@@ -43,7 +43,8 @@ class OSCInterface:
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self._log_event("listener_started", "/", ["0.0.0.0, 9001"])
 
-    def _setup_logger(self, enable_logging, log_path):
+    @staticmethod
+    def _setup_logger(enable_logging, log_path):
         logger = logging.getLogger("agent_osc")
         logger.propagate = False
 

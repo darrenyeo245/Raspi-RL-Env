@@ -8,7 +8,7 @@ class MediaEnv(gym.Env):
         self.osc = osc_interface
 
         self.observation_space = gym.spaces.Box(
-            low=-1.0, high=1.0, shape=(6,), dtype=np.float32
+            low=-1.0, high=1.0, shape=(3,), dtype=np.float32
         )
         self.action_space = gym.spaces.Box(
             low=-1.0, high=1.0, shape=(3,), dtype=np.float32
@@ -17,14 +17,9 @@ class MediaEnv(gym.Env):
         self.max_steps = int(max_steps)
         self._step_count = 0
 
-    def _build_observation(self, actor_state):
-        media_state = self.osc.get_media_command_state().astype(np.float32)
-        return np.concatenate(
-            (
-                actor_state.astype(np.float32),
-                media_state
-            )
-        )
+    @staticmethod
+    def _build_observation(actor_state):
+        return actor_state.astype(np.float32)
 
     def step(self, action):
         action = np.asarray(action, dtype=np.float32)
@@ -72,13 +67,11 @@ class MediaEnv(gym.Env):
 
         self.osc.send_reset(np.zeros(3, dtype=np.float32))
 
-        # Primärquelle für den Zustand ist die Kamera (/adm/obj/101/xyz).
         actor_state = self.osc.get_actor_state(wait_for_new=True, timeout=1.0).astype(np.float32)
 
         obs = self._build_observation(actor_state)
 
         info = {
-            "actor_state": actor_state.tolist(),
-            "media_state": obs[3:6].tolist(),
+            "actor_state": actor_state.tolist()
         }
         return obs, info
