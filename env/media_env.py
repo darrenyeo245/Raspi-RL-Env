@@ -8,9 +8,9 @@ class MediaEnv(gym.Env):
         self.osc = osc_interface
 
         self.observation_space = gym.spaces.Box(
-            low=np.array([-180.0, -90.0, 0.0, -180.0, -90.0, 0.0], dtype=np.float32),
-            high= np.array([180.0, 90.0, 1.0, 180.0, 90.0, 1.0], dtype=np.float32),
-            shape=(6,),
+            low=np.array([-180.0, -90.0, 0.0], dtype=np.float32),
+            high= np.array([180.0, 90.0, 1.0], dtype=np.float32),
+            shape=(3,),
             dtype=np.float32,
         )
 
@@ -24,14 +24,9 @@ class MediaEnv(gym.Env):
         self.max_steps = int(max_steps)
         self._step_count = 0
 
-    def _build_observation(self, actor_state):
-        media_state = self.osc.get_media_command_state().astype(np.float32)
-        return np.concatenate(
-            (
-                actor_state.astype(np.float32),
-                media_state
-            )
-        )
+    @staticmethod
+    def _build_observation(actor_state):
+        return actor_state.astype(np.float32)
 
     def step(self, action):
         action = np.asarray(action, dtype=np.float32)
@@ -86,6 +81,5 @@ class MediaEnv(gym.Env):
 
         info = {
             "actor_state": actor_state.tolist(),
-            "media_state": obs[3:6].tolist(),
         }
         return obs, info
