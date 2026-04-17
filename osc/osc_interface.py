@@ -20,6 +20,8 @@ class OSCInterface:
         self.media_command_state = np.zeros(3, dtype=np.float32)
         self.reward = 0.0
 
+        self.xyz_min = np.array([-1.0, -1.0, -1.0], dtype=np.float32)
+        self.xyz_max = np.array([1.0, 1.0, 1.0], dtype=np.float32)
         self.aed_min = np.array([-180.0, -90.0, 0.0], dtype=np.float32)
         self.aed_max = np.array([180.0,90.0,1.0], dtype=np.float32)
 
@@ -35,7 +37,7 @@ class OSCInterface:
         self.logger = self._setup_logger(enable_logging=enable_logging, log_path=log_path)
 
         dispatcher = Dispatcher()
-        dispatcher.map("/adm/obj/101/aed", self.state_handler)
+        dispatcher.map("/adm/obj/101/xyz", self.state_handler)
         dispatcher.map("/adm/obj/1/aed", self.media_command_handler)
         dispatcher.map("/adm/obj/2/aed", self.media_command_handler)
         dispatcher.map("/reward", self.reward_handler)
@@ -81,18 +83,22 @@ class OSCInterface:
         if self.logger.isEnabledFor(logging.INFO):
             self.logger.info("%s | %s | %s", direction, address, list(payload))
 
+    def _clip_xyz(self, values):
+        values = np.asarray(values, dtype=np.float32)
+        return np.clip(values, self.xyz_min, self.xyz_max)
+
     def _clip_aed(self, values):
         values = np.asarray(values, dtype=np.float32)
         return np.clip(values, self.aed_min, self.aed_max)
 
     def state_handler(self, address, *args):
         if len(args) >= 3:
-            state_aed = self._clip_aed(np.array(args[:3], dtype=np.float32))
+            state_xyz = self._clip_xyz(np.array(args[:3], dtype=np.float32))
             with self._lock:
-                self.actor_state = state_aed
+                self.actor_state = state_xyz
                 self._state_pending = True
                 self._lock.notify_all()
-            self._log_event("recv", address, state_aed.tolist())
+            self._log_event("recv", address, state_xyz.tolist())
 
     def media_command_handler(self, address, *args):
         if len(args) >= 3:

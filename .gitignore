@@ -1,10 +1,7 @@
 venv/
 .idea/
-# Logs*.loglogs/
 train/logs/
 tb_logs/
-
-# Python cache__pycache__/
-*.pyc```
-
+**/__pycache__/
 .env
+*.log
