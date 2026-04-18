@@ -32,7 +32,6 @@ class OSCInterface:
 
         dispatcher = Dispatcher()
         dispatcher.map("/adm/obj/101/xyz", self.state_handler)
-        dispatcher.map("/adm/obj/1/xyz", self.media_command_handler)
         dispatcher.map("/reward", self.reward_handler)
         dispatcher.map("/episode/reset_manual", self.manual_reset_handler)
         dispatcher.map("/episode/end", self.episode_end_handler)
@@ -82,13 +81,6 @@ class OSCInterface:
             with self._lock:
                 self.actor_state = np.array(args[:3], dtype=np.float32)
                 self._state_pending = True
-                self._lock.notify_all()
-            self._log_event("recv", address, args[:3])
-
-    def media_command_handler(self, address, *args):
-        if len(args) >= 3:
-            with self._lock:
-                self.media_command_state = np.array(args[:3], dtype=np.float32)
                 self._lock.notify_all()
             self._log_event("recv", address, args[:3])
 
@@ -150,9 +142,11 @@ class OSCInterface:
         action = np.asarray(action, dtype=np.float32)
         payload = action.tolist()
         self.client.send_message("/adm/obj/1/xyz", payload)
+        self.client.send_message("/adm/obj/2/xyz", payload)
         with self._lock:
             self.media_command_state = action.copy()
         self._log_event("send", "/adm/obj/1/xyz", payload)
+        self._log_event("send", "/adm/obj/2/xyz", payload)
 
     def send_reset(self, init_state):
         init_state = np.asarray(init_state, dtype=np.float32)
