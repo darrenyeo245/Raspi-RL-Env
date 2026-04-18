@@ -27,6 +27,7 @@ class OSCInterface:
         self._lock = threading.Condition()
 
         self.client = udp_client.SimpleUDPClient(BROADCAST_IP, BROADCAST_PORT, allow_broadcast=True)
+        self.local_client = udp_client.SimpleUDPClient("127.0.0.1", RASPI_PORT)
         self.logger = self._setup_logger(enable_logging=enable_logging, log_path=log_path)
 
         dispatcher = Dispatcher()
@@ -181,3 +182,8 @@ class OSCInterface:
             self._training_stop_pending = False
 
             return reward, manual_reset, episode_end, training_stop
+
+    def send_training_status(self, active: bool, text: str = "default"):
+        payload = [int(active), text]
+        self.client.send_message("/training/status", payload)
+        self._log_event("send", "/training/status", payload)

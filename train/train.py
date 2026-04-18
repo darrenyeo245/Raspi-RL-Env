@@ -1,5 +1,6 @@
 import sys
 import os
+import threading
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from stable_baselines3 import PPO
@@ -9,6 +10,47 @@ from osc.osc_interface import OSCInterface
 from stable_baselines3.common.callbacks import BaseCallback
 import numpy as np
 import torch
+
+def _terminal_control(osc):
+    """
+    Läuft in einem Daemon-Thread und liest Befehle aus dem Terminal.
+
+    Befehle:
+          r / reset  – Manueller Episode-Reset  (/episode/reset_manual)
+          s / stop   – Training stoppen, Modell NICHT speichern (/training/stop)
+          w / save   – Training stoppen und Modell speichern  (/training/stop_save)
+          h / help   – Hilfe anzeigen
+    """
+    HELP = (
+            "\n── Terminal-Steuerung ──────────────────────────\n"
+            "  r / reset  – Episode manuell resetten\n"
+            "  s / stop   – Training stoppen (nicht speichern)\n"
+            "  w / save   – Training stoppen & Modell speichern\n"
+            "  h / help   – Diese Hilfe anzeigen\n"
+            "────────────────────────────────────────────────\n"
+    )
+    print(HELP, flush=True)
+    while True:
+        try:
+            cmd = input().strip().lower()
+        except EOFError:
+            break
+
+        if cmd in ("r", "reset"):
+            osc.local_client.send_message("/episode/reset_manual", [])
+            print("[terminal] → /episode/reset_manual gesendet", flush=True)
+        elif cmd in ("s", "stop"):
+            osc.local_client.send_message("/training/stop", [])
+            print("[terminal] → /training/stop gesendet", flush=True)
+        elif cmd in ("w", "save"):
+            osc.local_client.send_message("/training/stop_save", [])
+            print("[terminal] → /training/stop_save gesendet", flush=True)
+        elif cmd in ("h", "help"):
+                print(HELP, flush=True)
+        elif cmd == "":
+            pass
+        else:
+            print(f"[terminal] Unbekannter Befehl: '{cmd}' – 'h' für Hilfe", flush=True)
 
 class EpisodeSummaryCallback(BaseCallback):
     def __init__(self, final_model_path, verbose=0):
@@ -176,6 +218,12 @@ def train(out_dir=None, total_timesteps=10000, algo="ppo", max_steps=100):
     os.makedirs(out_dir, exist_ok=True)
 
     osc = OSCInterface()
+    control_thread = threading.Thread(
+        target=_terminal_control,
+        args=(osc,),
+        daemon=True
+    )
+    control_thread.start()
     env = MediaEnv(osc, max_steps=max_steps)
 
     final_model_path = os.path.join(out_dir, "final_model")
@@ -196,8 +244,14 @@ def train(out_dir=None, total_timesteps=10000, algo="ppo", max_steps=100):
     print(f"Algorithmus: {algo.upper()} | Timesteps: {total_timesteps}")
     callback = EpisodeSummaryCallback(final_model_path=final_model_path)
     try:
+        osc.send_training_status(active=True, text="training active")
         model.learn(total_timesteps=total_timesteps, callback=callback)
     finally:
+        try:
+            os.close(0)
+        except OSError:
+            pass
+        osc.send_training_status(active=False, text="training stop")
         print("Training beendet, Modell gespeichert als 'final_model.zip'.", flush=True)
 
     return model, env
