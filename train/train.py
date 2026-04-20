@@ -252,8 +252,6 @@ def train(out_dir=None, total_timesteps=10000, algo="ppo", max_steps=100):
         except OSError:
             pass
         osc.send_training_status(active=False, text="training stop")
-        print("Training beendet, Modell gespeichert als 'final_model.zip'.", flush=True)
-
     return model, env
 
 
