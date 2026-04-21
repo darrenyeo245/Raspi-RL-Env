@@ -25,7 +25,7 @@ class MediaEnv(gym.Env):
         action = np.asarray(action, dtype=np.float32)
         self.osc.send_action(action)
 
-        reward, manual_reset, episode_end, training_stop = self.osc.wait_for_feedback(timeout=None)
+        reward, manual_reset, episode_end, training_stop, training_stop_save = self.osc.wait_for_feedback(timeout=None)
 
         actor_state = self.osc.get_actor_state(wait_for_new=False).astype(np.float32)
         obs = self._build_observation(actor_state)

@@ -24,6 +24,7 @@ class OSCInterface:
         self._manual_reset_pending = False
         self._episode_end_pending = False
         self._training_stop_pending = False
+        self._training_stop_save_pending = False
         self._lock = threading.Condition()
 
         self.client = udp_client.SimpleUDPClient(BROADCAST_IP, BROADCAST_PORT, allow_broadcast=True)
