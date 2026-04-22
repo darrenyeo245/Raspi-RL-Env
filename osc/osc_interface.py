@@ -24,6 +24,7 @@ class OSCInterface:
         self._manual_reset_pending = False
         self._episode_end_pending = False
         self._training_stop_pending = False
+        self._training_stop_save_pending = False
         self._lock = threading.Condition()
 
         self.client = udp_client.SimpleUDPClient(BROADCAST_IP, BROADCAST_PORT, allow_broadcast=True)
@@ -36,7 +37,7 @@ class OSCInterface:
         dispatcher.map("/episode/reset_manual", self.manual_reset_handler)
         dispatcher.map("/episode/end", self.episode_end_handler)
         dispatcher.map("/training/stop", self.training_stop_handler)
-        dispatcher.map("/training/stop_save", self.training_stop_handler)
+        dispatcher.map("/training/stop_save", self.training_stop_save_handler)
 
 
         self.server = osc_server.ThreadingOSCUDPServer(("0.0.0.0", RASPI_PORT), dispatcher)
@@ -111,6 +112,13 @@ class OSCInterface:
             self._lock.notify_all()
         self._log_event("recv", address, args)
 
+    def training_stop_save_handler(self, address, *args):
+        with self._lock:
+            self._training_stop_pending = True
+            self._training_stop_save_pending = True
+            self._lock.notify_all()
+        self._log_event("recv", address, args)
+
 
     def get_state(self, wait_for_new=False, timeout=None):
         return self.get_actor_state(wait_for_new=wait_for_new, timeout=timeout)
@@ -168,14 +176,16 @@ class OSCInterface:
             manual_reset = self._manual_reset_pending
             episode_end = self._episode_end_pending
             training_stop = self._training_stop_pending
+            training_stop_save = self._training_stop_save_pending
 
             self.reward = 0.0
             self._reward_pending = False
             self._manual_reset_pending = False
             self._episode_end_pending = False
             self._training_stop_pending = False
+            self._training_stop_save_pending = False
 
-            return reward, manual_reset, episode_end, training_stop
+            return reward, manual_reset, episode_end, training_stop, training_stop_save
 
     def send_training_status(self, active: bool, text: str = "default"):
         payload = [int(active), text]
