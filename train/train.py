@@ -212,7 +212,7 @@ class EpisodeSummaryCallback(BaseCallback):
         self._reset_episode()
         return True
 
-def train(out_dir=None, total_timesteps=10000, algo="ppo", max_steps=100):
+def train(out_dir=None, total_timesteps=10000, algo="ppo", max_steps=500):
     if out_dir is None:
         out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models')
     os.makedirs(out_dir, exist_ok=True)
@@ -229,15 +229,15 @@ def train(out_dir=None, total_timesteps=10000, algo="ppo", max_steps=100):
     final_model_path = os.path.join(out_dir, "final_model")
 
     if os.path.exists(final_model_path + ".zip"):
-        model = PPO.load(final_model_path, env=env, n_steps=64, batch_size=32)
+        model = PPO.load(final_model_path, env=env, n_steps=2048, batch_size=64)
         print("Modell 'final_model' wurde geladen")
     else:
         model = PPO(
             'MlpPolicy',
             env,
             verbose=1,
-            n_steps=64,
-            batch_size=32,
+            n_steps=2048,
+            batch_size=64,
         )
 
     print("Training gestartet. Jeder Schritt wartet auf manuelles Feedback (/reward, /episode/*).")
